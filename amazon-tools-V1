@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊变体图片生成工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: flex-start;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .controls button:hover {
+            opacity: 0.9;
+        }
+        #addRowBtn { background-color: #4CAF50; color: white; }
+        #exportBtn { background-color: #2196F3; color: white; }
+        #clearBtn { background-color: #f44336; color: white; }
+        
+        .copy-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .copy-controls button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+            box-sizing: border-box;
+        }
+        .copy-controls button:hover {
+            background-color: #e0e0e0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            color: #555;
+            position: relative;
+        }
+        .asin-col, .attr-col {
+            width: 15%;
+        }
+        .table-row.selected {
+            background-color: #e0f7fa;
+        }
+        .table-row.selected td {
+            border-top: 2px solid #00acc1;
+            border-bottom: 2px solid #00acc1;
+        }
+        .table-row.selected td:first-child { border-left: 2px solid #00acc1; }
+        .table-row.selected td:last-child { border-right: 2px solid #00acc1; }
+        
+        .image-cell {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .image-op-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-right: 10px;
+        }
+        .image-op-buttons button {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .image-op-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .img-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 5px;
+            padding: 5px;
+            border: 1px dashed #ddd;
+            border-radius: 4px;
+        }
+        .image-placeholder {
+            flex-shrink: 0;
+            width: 70px;
+            height: 70px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #ccc;
+            cursor: pointer;
+            transition: border-color 0.3s, color 0.3s;
+            position: relative;
+        }
+        .image-placeholder:hover {
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .image-placeholder.has-image {
+            border: 1px solid #ccc;
+            cursor: grab;
+        }
+        .image-placeholder.dragging {
+            opacity: 0.5;
+        }
+        .image-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .image-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #2196F3;
+            color: white;
+            font-size: 8px;
+            padding: 1px 4px;
+            border-top-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            z-index: 10;
+        }
+        .delete-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            z-index: 20;
+        }
+        .image-placeholder.has-image:hover .delete-btn {
+            display: block;
+        }
+        .bulk-paste-btn {
+            background-color: #90a4ae;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            font-size: 14px;
+            cursor: pointer;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            z-index: 1000;
+        }
+        .dialog-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .dialog-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .dialog-content textarea {
+            width: 300px;
+            height: 200px;
+            resize: none;
+            margin-bottom: 10px;
+        }
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>亚马逊变体图片生成工具</h1>
+    <div class="controls">
+        <button id="addRowBtn">新增行</button>
+        <button id="exportBtn">导出所有图片为 ZIP</button>
+        <button id="clearBtn">清空所有数据</button>
+    </div>
+
+    <div class="copy-controls">
+        <button id="copyAllToAllBtn">全复制</button>
+        <button id="copyAllToAttrBtn">同属性复制</button>
+        <button id="copyPtToAllBtn">附图复制</button>
+        <button id="copyPtToAttrBtn">附图同属性复制</button>
+    </div>
+
+    <table id="variantTable">
+        <thead>
+            <tr>
+                <th class="asin-col">
+                    ASIN
+                    <div class="bulk-paste-btn" data-target="asin-input">+</div>
+                </th>
+                <th class="attr-col">
+                    Color
+                    <div class="bulk-paste-btn" data-target="attr1-input">+</div>
+                </th>
+                <th class="attr-col">
+                    Size
+                    <div class="bulk-paste-btn" data-target="attr2-input">+</div>
+                </th>
+                <th>图片 (最多9张)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="table-row">
+                <td><input type="text" class="asin-input" placeholder="输入 ASIN"></td>
+                <td><input type="text" class="attr1-input" placeholder="例如: black"></td>
+                <td><input type="text" class="attr2-input" placeholder="例如: L"></td>
+                <td class="image-cell" ondragover="event.preventDefault();" ondrop="handleDrop(event)">
+                    <div class="image-op-buttons">
+                        <button class="add-images-btn">批量添加</button>
+                        <button class="clear-images-btn">全部清除</button>
+                    </div>
+                    <div class="img-grid">
+                        <div class="image-placeholder main-img-placeholder" data-index="0" draggable="true">
+                            <input type="file" class="image-file-input" accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                            <div class="image-label">主图</div>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="1" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="2" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="3" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="4" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="5" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="6" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="7" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="8" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="loadingOverlay" style="display: none;">正在打包，请稍候...</div>
+
+<div class="dialog-overlay" id="bulkDialog">
+    <div class="dialog-content">
+        <p>请粘贴要批量导入的数据：</p>
+        <textarea id="bulkTextarea" placeholder="每行一个值，例如：&#10;ASIN1&#10;ASIN2"></textarea>
+        <div class="dialog-buttons">
+            <button id="dialogConfirm">确定</button>
+            <button id="dialogCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tableBody = document.querySelector('#variantTable tbody');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const bulkPasteButtons = document.querySelectorAll('.bulk-paste-btn');
+        const bulkDialog = document.getElementById('bulkDialog');
+        const bulkTextarea = document.getElementById('bulkTextarea');
+        const dialogConfirm = document.getElementById('dialogConfirm');
+        const dialogCancel = document.getElementById('dialogCancel');
+        
+        const copyAllToAllBtn = document.getElementById('copyAllToAllBtn');
+        const copyAllToAttrBtn = document.getElementById('copyAllToAttrBtn');
+        const copyPtToAllBtn = document.getElementById('copyPtToAllBtn');
+        const copyPtToAttrBtn = document.getElementById('copyPtToAttrBtn');
+        let selectedRow = null;
+
+        // 辅助函数：创建新的行
+        const createNewRow = (asin = '', attr1 = '', attr2 = '') => {
+            const newRow = document.createElement('tr');
+            newRow.classList.add('table-row');
+            newRow.innerHTML = `
+                <td><input type="text" class="asin-input" placeholder="输入 ASIN" value="${asin}"></td>
+                <td><input type="text" class="attr1-input" placeholder="例如: black" value="${attr1}"></td>
+                <td><input type="text" class="attr2-input" placeholder="例如: L" value="${attr2}"></td>
+                <td class="image-cell">
+                    <div class="image-op-buttons">
+                        <button class="add-images-btn">批量添加</button>
+                        <button class="clear-images-btn">全部清除</button>
+                    </div>
+                    <div class="img-grid">
+                        <div class="image-placeholder main-img-placeholder" data-index="0" draggable="true">
+                            <input type="file" class="image-file-input" accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                            <div class="image-label">主图</div>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="1" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="2" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="3" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="4" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="5" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="6" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="7" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                        <div class="image-placeholder pt-img-placeholder" data-index="8" draggable="true">
+                            <input type="file" class="image-file-input" multiple accept="image/*" style="display: none;">
+                            <span class="plus-icon">+</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            `;
+            tableBody.appendChild(newRow);
+            // 为新行添加拖放事件监听
+            addDragDropListeners(newRow);
+        };
+        
+        // 辅助函数：根据文件数据更新单个图片格子
+        const updatePlaceholder = (placeholder, file) => {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    placeholder.innerHTML = `
+                        <input type="file" class="image-file-input" accept="image/*" style="display: none;">
+                        <img src="${e.target.result}" data-file-name="${file.name}" data-file-data="${e.target.result}">
+                        <div class="delete-btn">x</div>
+                        ${placeholder.classList.contains('main-img-placeholder') ? '<div class="image-label">主图</div>' : ''}
+                    `;
+                    placeholder.dataset.fileObject = file;
+                    placeholder.classList.add('has-image');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                placeholder.innerHTML = `<input type="file" class="image-file-input" accept="image/*" style="display: none;"><span class="plus-icon">+</span>`;
+                placeholder.classList.remove('has-image');
+                if (placeholder.classList.contains('main-img-placeholder')) {
+                     placeholder.innerHTML += `<div class="image-label">主图</div>`;
+                }
+                placeholder.dataset.fileObject = null;
+            }
+        };
+
+        // 辅助函数：更新所有图片预览，以数据为准
+        const updateImagePreviews = (row, files) => {
+            const placeholders = Array.from(row.querySelectorAll('.image-placeholder'));
+            const filesToUse = files.slice(0, 9);
+            const currentFiles = placeholders.map(ph => ph.dataset.fileObject);
+            
+            const newFiles = Array(9).fill(null);
+            filesToUse.forEach((file, index) => newFiles[index] = file);
+
+            for (let i = 0; i < 9; i++) {
+                if (newFiles[i] !== currentFiles[i]) {
+                    updatePlaceholder(placeholders[i], newFiles[i]);
+                }
+            }
+            if (files.length > 9) {
+                alert(`已自动省略超出数量的图片，最多支持9张。`);
+            }
+        };
+
+        // 批量粘贴功能
+        bulkPasteButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetClass = btn.dataset.target;
+                bulkDialog.style.display = 'flex';
+                bulkTextarea.dataset.targetClass = targetClass;
+                bulkTextarea.value = '';
+                bulkTextarea.focus();
+            });
+        });
+
+        dialogConfirm.addEventListener('click', () => {
+            const pastedText = bulkTextarea.value.trim();
+            const targetClass = bulkTextarea.dataset.targetClass;
+            const values = pastedText.split('\n').map(v => v.trim()).filter(v => v);
+
+            if (values.length === 0) {
+                alert('粘贴内容为空，请重新输入。');
+                return;
+            }
+
+            const existingRows = Array.from(tableBody.querySelectorAll('tr'));
+            const pasteCount = values.length;
+            
+            while (tableBody.children.length < pasteCount) {
+                createNewRow();
+            }
+
+            const rowsToUpdate = Array.from(tableBody.querySelectorAll('tr')).slice(0, pasteCount);
+            rowsToUpdate.forEach((row, index) => {
+                const input = row.querySelector(`.${targetClass}`);
+                if (input) {
+                    input.value = values[index];
+                }
+            });
+
+            bulkDialog.style.display = 'none';
+        });
+
+        dialogCancel.addEventListener('click', () => {
+            bulkDialog.style.display = 'none';
+        });
+        
+        // 行选择功能
+        tableBody.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            if (row && !e.target.closest('.image-cell')) {
+                document.querySelectorAll('.table-row.selected').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                selectedRow = row;
+            }
+        });
+
+        // 图片操作监听
+        tableBody.addEventListener('click', (e) => {
+            const target = e.target;
+            const row = target.closest('tr');
+            if (!row) return;
+
+            if (target.matches('.image-placeholder') || target.matches('.image-placeholder span.plus-icon') || target.matches('.image-placeholder img')) {
+                const placeholder = target.closest('.image-placeholder');
+                placeholder.querySelector('.image-file-input').click();
+            }
+
+            if (target.matches('.add-images-btn')) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = 'image/*';
+                input.style.display = 'none';
+                input.addEventListener('change', () => {
+                    if (input.files.length > 0) {
+                        const placeholders = Array.from(row.querySelectorAll('.image-placeholder'));
+                        updateImagePreviews(row, Array.from(input.files));
+                    }
+                });
+                input.click();
+            }
+
+            if (target.matches('.clear-images-btn')) {
+                const placeholders = Array.from(row.querySelectorAll('.image-placeholder'));
+                updateImagePreviews(row, []);
+            }
+
+            if (target.matches('.delete-btn')) {
+                const placeholder = target.closest('.image-placeholder');
+                updatePlaceholder(placeholder, null);
+            }
+        });
+        
+        // 外部拖入文件处理
+        window.handleDrop = (e) => {
+            e.preventDefault();
+            const row = e.target.closest('tr');
+            if (!row) return;
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                updateImagePreviews(row, files);
+            }
+        };
+
+        // 图片文件输入监听
+        tableBody.addEventListener('change', (e) => {
+            if (e.target.matches('.image-file-input')) {
+                const file = e.target.files[0];
+                const placeholder = e.target.closest('.image-placeholder');
+                if (file) {
+                    updatePlaceholder(placeholder, file);
+                }
+            }
+        });
+
+        // 拖拽逻辑封装
+        const addDragDropListeners = (row) => {
+            let dragSrcEl = null; 
+            let dragSrcFile = null;
+            let initialPlaceholderIndex = -1;
+
+            row.addEventListener('dragstart', (e) => {
+                const target = e.target.closest('.image-placeholder.has-image');
+                if (target) {
+                    dragSrcEl = target;
+                    dragSrcFile = dragSrcEl.dataset.fileObject;
+                    initialPlaceholderIndex = parseInt(dragSrcEl.dataset.index);
+
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', initialPlaceholderIndex);
+
+                    dragSrcEl.classList.add('dragging');
+                } else {
+                    e.preventDefault();
+                }
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.image-placeholder');
+                if (target) {
+                    target.classList.add('drag-over');
+                }
+            });
+
+            row.addEventListener('dragleave', (e) => {
+                const target = e.target.closest('.image-placeholder');
+                if (target) {
+                    target.classList.remove('drag-over');
+                }
+            });
+
+            row.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const targetEl = e.target.closest('.image-placeholder');
+                
+                if (targetEl && dragSrcEl) {
+                    const allPlaceholders = Array.from(row.querySelectorAll('.image-placeholder'));
+                    const targetIndex = parseInt(targetEl.dataset.index);
+
+                    let currentFiles = allPlaceholders.map(ph => ph.dataset.fileObject).filter(f => f);
+
+                    let filesToUpdate = [];
+
+                    if (initialPlaceholderIndex === 0) { // 拖拽主图
+                        const mainImage = dragSrcFile;
+                        const remainingImages = currentFiles.slice(1);
+                        filesToUpdate = [mainImage, ...remainingImages]; // 保证主图在第一位
+                        
+                        if (targetIndex !== 0) { // 拖到附图位置
+                            // 将主图插入到新的位置
+                            filesToUpdate.splice(targetIndex, 0, filesToUpdate.shift());
+                        }
+
+                    } else { // 拖拽附图
+                        const dragFile = dragSrcFile;
+                        
+                        // 从当前文件数组中移除被拖拽的图片
+                        const filesWithoutDrag = currentFiles.filter(f => f !== dragFile);
+
+                        if (targetIndex === 0) { // 拖到主图位置
+                            filesToUpdate = [dragFile, ...filesWithoutDrag];
+                        } else { // 拖到附图位置
+                            // 计算插入点
+                            let insertIndex = targetIndex - 1;
+                            
+                            // 插入到新位置
+                            filesToUpdate = [...filesWithoutDrag.slice(0, insertIndex), dragFile, ...filesWithoutDrag.slice(insertIndex)];
+                        }
+                    }
+                    
+                    updateImagePreviews(row, filesToUpdate);
+                }
+
+                if (targetEl) targetEl.classList.remove('drag-over');
+                if (dragSrcEl) dragSrcEl.classList.remove('dragging');
+            });
+
+            row.addEventListener('dragend', (e) => {
+                if (dragSrcEl) dragSrcEl.classList.remove('dragging');
+                dragSrcEl = null;
+                dragSrcFile = null;
+                initialPlaceholderIndex = -1;
+            });
+        };
+
+        // 图片复制核心逻辑
+        const copyImages = (files, rows, mode, attr, type = 'all') => {
+            files = files.filter(f => f);
+            if (files.length === 0) {
+                alert("没有找到要复制的图片！");
+                return;
+            }
+
+            rows.forEach(targetRow => {
+                let shouldCopy = false;
+                if (mode === 'all') {
+                    shouldCopy = true;
+                } else if (mode === 'attr' && attr) {
+                    const targetAttr1 = targetRow.querySelector('.attr1-input').value.trim();
+                    const targetAttr2 = targetRow.querySelector('.attr2-input').value.trim();
+                    if (targetAttr1 === attr.attr1 || targetAttr2 === attr.attr2) {
+                        shouldCopy = true;
+                    }
+                }
+
+                if (shouldCopy) {
+                    const placeholders = Array.from(targetRow.querySelectorAll('.image-placeholder'));
+                    let filesToCopy = [];
+                    if (type === 'all') {
+                        filesToCopy = files;
+                    } else if (type === 'pt') {
+                        const mainImage = placeholders[0].dataset.fileObject;
+                        filesToCopy = mainImage ? [mainImage, ...files] : files;
+                    }
+                    updateImagePreviews(targetRow, filesToCopy);
+                }
+            });
+            alert("图片复制完成！");
+        };
+
+        const copyButtons = [
+            { btn: copyAllToAllBtn, type: 'all', mode: 'all' },
+            { btn: copyAllToAttrBtn, type: 'all', mode: 'attr' },
+            { btn: copyPtToAllBtn, type: 'pt', mode: 'all' },
+            { btn: copyPtToAttrBtn, type: 'pt', mode: 'attr' }
+        ];
+
+        copyButtons.forEach(({ btn, type, mode }) => {
+            btn.addEventListener('click', () => {
+                if (!selectedRow) {
+                    alert("请先点击选择要复制图片的行！");
+                    return;
+                }
+                const asin = selectedRow.querySelector('.asin-input').value.trim();
+                const attr1 = selectedRow.querySelector('.attr1-input').value.trim();
+                const attr2 = selectedRow.querySelector('.attr2-input').value.trim();
+                const allRows = Array.from(tableBody.querySelectorAll('tr'));
+                const placeholders = Array.from(selectedRow.querySelectorAll('.image-placeholder'));
+                const sourceImages = placeholders.map(ph => ph.dataset.fileObject).filter(f => f);
+                const sourcePtImages = sourceImages.slice(1);
+                const filesToCopy = (type === 'all') ? sourceImages : sourcePtImages;
+
+                copyImages(filesToCopy, allRows, mode, { attr1, attr2 }, type);
+            });
+        });
+
+        // 导出 ZIP 核心逻辑
+        exportBtn.addEventListener('click', async () => {
+            loadingOverlay.style.display = 'flex';
+            const zip = new JSZip();
+            const rows = document.querySelectorAll('#variantTable tbody tr');
+            let hasFiles = false;
+
+            for (const row of rows) {
+                const asin = row.querySelector('.asin-input').value.trim();
+                if (!asin) continue;
+
+                const placeholders = Array.from(row.querySelectorAll('.image-placeholder'));
+                const images = placeholders.map(ph => ph.dataset.fileObject).filter(f => f);
+                if (images.length === 0) continue;
+                
+                hasFiles = true;
+                
+                const mainImage = images[0];
+                if (mainImage) {
+                    zip.file(`${asin}.MAIN.jpg`, mainImage, { binary: true });
+                }
+
+                images.slice(1).forEach((file, index) => {
+                    zip.file(`${asin}.PT${String(index + 1).padStart(2, '0')}.jpg`, file, { binary: true });
+                });
+            }
+
+            if (hasFiles) {
+                const content = await zip.generateAsync({ type: "blob" });
+                saveAs(content, "amazon_variant_images.zip");
+                loadingOverlay.style.display = 'none';
+                alert("ZIP 文件已成功生成并下载！");
+            } else {
+                loadingOverlay.style.display = 'none';
+                alert("没有找到任何图片文件，无法生成 ZIP。");
+            }
+        });
+
+        addRowBtn.addEventListener('click', () => createNewRow());
+        clearBtn.addEventListener('click', () => {
+            if (confirm("确定要清空所有数据吗？此操作不可逆。")) {
+                while (tableBody.firstChild) {
+                    tableBody.removeChild(tableBody.firstChild);
+                }
+                createNewRow();
+            }
+        });
+
+        // 初始化时为所有现有行添加拖放监听器
+        document.querySelectorAll('.table-row').forEach(addDragDropListeners);
+    });
+</script>
+
+</body>
+</html>
