@@ -1,0 +1,1218 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊变体图片生成工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 24px;
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 0;
+            display: block;
+            max-height: 450px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: #34495e;
+            z-index: 10;
+        }
+        th, td {
+            border: 1px solid #e1e8ed;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tbody tr:hover {
+            background-color: #e3f2fd;
+            transition: background-color 0.2s ease;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 6px 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: border-color 0.3s ease;
+            text-align: center;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+        .image-input {
+            width: 75px;
+            height: 75px;
+            border: 2px dashed #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: #fafafa;
+            position: relative;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+        }
+        .image-input:hover {
+            background-color: #ecf0f1;
+            border-color: #95a5a6;
+        }
+        .image-input img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .left-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+        .center-controls {
+            flex: 2;
+            text-align: center;
+        }
+        .right-controls {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(135deg, #ff9900 0%, #e68a00 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .action-buttons button {
+            width: 100%;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            font-size: 11px;
+            padding: 6px 10px;
+        }
+        .export-button {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+        }
+        .file-input {
+            display: none;
+        }
+        .row-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .icon-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            padding: 5px;
+            font-size: 0;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+        .clear-column-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            padding: 5px;
+            font-size: 0;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 8% auto;
+            padding: 25px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .close:hover {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin: 12px 0;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 13px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+        .sync-dropdown {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        .sync-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 130px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1;
+            left: 0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .sync-dropdown-content button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+            text-align: center;
+        }
+        .sync-dropdown:hover .sync-dropdown-content {
+            display: block;
+        }
+        .sync-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            width: 100%;
+            margin: 0;
+            padding: 6px 10px;
+        }
+        .image-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .image-control-btn {
+            padding: 5px 8px;
+            font-size: 11px;
+        }
+        .add-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        .clear-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .main-image-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .main-image-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 60px;
+        }
+        .stats {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 15px;
+        }
+        .undo-button {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+        .redo-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        .clear-images-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .sort-buttons {
+            display: inline-flex;
+            margin-left: 6px;
+            gap: 2px;
+            vertical-align: middle;
+        }
+        .sort-btn {
+            background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
+            padding: 3px 6px;
+            font-size: 10px;
+            margin: 0;
+            min-width: 24px;
+            height: 24px;
+        }
+        .sort-btn:hover {
+            background: linear-gradient(135deg, #95a5a6 0%, #bdc3c7 100%);
+        }
+        /* 列宽控制 */
+        .col-index { width: 50px; }
+        .col-asin { width: 140px; }
+        .col-color { width: 90px; }
+        .col-size { width: 80px; }
+        .col-image { width: 85px; }
+        .col-action { width: 120px; }
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bdc3c7;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #95a5a6;
+        }
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .left-controls, .right-controls {
+                justify-content: center;
+                width: 100%;
+            }
+            th, td {
+                padding: 6px;
+                font-size: 11px;
+            }
+            .image-input {
+                width: 60px;
+                height: 60px;
+            }
+            .col-asin { width: 120px; }
+            .col-color { width: 70px; }
+            .col-size { width: 60px; }
+            .col-image { width: 65px; }
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 12px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .right-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            table {
+                max-height: 350px;
+            }
+            .col-index { width: 40px; }
+            .col-asin { width: 100px; }
+            .col-color { width: 70px; }
+            .col-size { width: 60px; }
+            .col-image { width: 65px; }
+            .col-action { width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="left-controls">
+                <div class="stats">ASIN总数: <span id="asinCount">0</span></div>
+            </div>
+            <div class="center-controls">
+                <h1>亚马逊变体图片生成工具</h1>
+            </div>
+            <div class="right-controls">
+                <button class="export-button" onclick="exportImages()">导出ZIP</button>
+                <button class="clear-images-button" onclick="clearAllImagesGlobal()">清除图片</button>
+                <button class="clear-button" onclick="clearAll()">全部清除</button>
+                <button class="undo-button" onclick="undoLastAction()">上一步</button>
+                <button class="redo-button" onclick="redoLastAction()">下一步</button>
+            </div>
+        </div>
+        
+        <table id="variantTable">
+            <thead>
+                <tr>
+                    <th class="col-index">序号</th>
+                    <th class="col-asin">
+                        ASIN
+                        <button class="icon-btn" onclick="openBatchImport('asin')" title="批量导入">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                        </button>
+                        <button class="clear-column-btn" onclick="clearColumn('asin')" title="清除">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                        </button>
+                    </th>
+                    <th class="col-color">
+                        颜色
+                        <button class="icon-btn" onclick="openBatchImport('color')" title="批量导入">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                        </button>
+                        <button class="clear-column-btn" onclick="clearColumn('color')" title="清除">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                        </button>
+                        <div class="sort-buttons">
+                            <button class="sort-btn" onclick="sortTable('color', 'asc')" title="升序">↑</button>
+                            <button class="sort-btn" onclick="sortTable('color', 'desc')" title="降序">↓</button>
+                        </div>
+                    </th>
+                    <th class="col-size">
+                        尺码
+                        <button class="icon-btn" onclick="openBatchImport('size')" title="批量导入">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                        </button>
+                        <button class="clear-column-btn" onclick="clearColumn('size')" title="清除">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                        </button>
+                        <div class="sort-buttons">
+                            <button class="sort-btn" onclick="sortTable('size', 'asc')" title="升序">↑</button>
+                            <button class="sort-btn" onclick="sortTable('size', 'desc')" title="降序">↓</button>
+                        </div>
+                    </th>
+                    <th class="col-image">主图</th>
+                    <th class="col-image">附图1</th>
+                    <th class="col-image">附图2</th>
+                    <th class="col-image">附图3</th>
+                    <th class="col-image">附图4</th>
+                    <th class="col-image">附图5</th>
+                    <th class="col-image">附图6</th>
+                    <th class="col-image">附图7</th>
+                    <th class="col-image">附图8</th>
+                    <th class="col-action">操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Rows will be added here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 批量导入模态框 -->
+    <div id="batchImportModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeBatchImport()">&times;</span>
+            <h2>批量导入 <span id="importTypeTitle"></span></h2>
+            <p>请输入数据，每行一个值：</p>
+            <textarea id="batchImportData" placeholder="例如：
+B08N5WRX55
+B08N5WRX56
+B08N5WRX57"></textarea>
+            <button onclick="processBatchImport()">确定</button>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入框 -->
+    <input type="file" id="hiddenFileInput" multiple accept="image/*" style="display: none;">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        // 当前批量导入类型
+        let currentImportType = '';
+        // 当前批量图片导入的行
+        let currentBatchImageRow = null;
+        // 操作历史记录
+        let operationHistory = [];
+        // 重做历史记录
+        let redoHistory = [];
+        
+        // 初始化表格（为空）
+        function initTable() {
+            updateAsinCount();
+        }
+        
+        // 保存当前状态到历史记录（只保存图片状态）
+        function saveState() {
+            // 保存每行的图片数据
+            const rows = document.querySelectorAll('#tableBody tr');
+            const tableState = [];
+            
+            rows.forEach(row => {
+                const rowData = getRowData(row);
+                tableState.push({
+                    asin: rowData.asin,
+                    color: rowData.color,
+                    size: rowData.size,
+                    images: [...rowData.images]
+                });
+            });
+            
+            const asinCount = document.getElementById('asinCount').textContent;
+            operationHistory.push({
+                tableState: tableState,
+                asinCount: asinCount
+            });
+            // 清空重做历史
+            redoHistory = [];
+            // 限制历史记录数量
+            if (operationHistory.length > 50) {
+                operationHistory.shift();
+            }
+        }
+        
+        // 更新ASIN计数
+        function updateAsinCount() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            document.getElementById('asinCount').textContent = rows.length;
+        }
+        
+        // 添加带数据的行
+        function addRowWithData(asin, color, size) {
+            saveState();
+            const tbody = document.getElementById('tableBody');
+            const rowIndex = tbody.children.length + 1;
+            const row = document.createElement('tr');
+            
+            let rowHtml = `
+                <td>${rowIndex}</td>
+                <td><input type="text" class="asin-input" value="${asin}"></td>
+                <td><input type="text" class="color-input" value="${color}"></td>
+                <td><input type="text" class="size-input" value="${size}"></td>
+                <td>
+                    <div class="main-image-cell">
+                        <div class="main-image-controls">
+                            <button class="image-control-btn add-btn" onclick="openBatchImageImport(this)">添加</button>
+                            <button class="image-control-btn clear-btn" onclick="clearAllImages(this)">清除</button>
+                        </div>
+                        <div class="image-input" onclick="openFilePicker(this)">
+                            <img style="display:none;">
+                        </div>
+                    </div>
+                </td>
+            `;
+            
+            // 添加附图列（8张附图）
+            for (let i = 1; i <= 8; i++) {
+                rowHtml += `
+                    <td>
+                        <div class="image-input" onclick="openFilePicker(this)">
+                            <img style="display:none;">
+                        </div>
+                    </td>
+                `;
+            }
+            
+            // 添加操作按钮
+            rowHtml += `
+                <td>
+                    <div class="row-actions">
+                        <div class="sync-dropdown">
+                            <button class="sync-btn">全图</button>
+                            <div class="sync-dropdown-content">
+                                <button onclick="applyAllToAll(this)">全部同步</button>
+                                <button onclick="applyAllToColor(this)">颜色同步</button>
+                                <button onclick="applyAllToSize(this)">尺码同步</button>
+                            </div>
+                        </div>
+                        <div class="sync-dropdown">
+                            <button class="sync-btn">附图</button>
+                            <div class="sync-dropdown-content">
+                                <button onclick="applySubToAll(this)">全部同步</button>
+                                <button onclick="applySubToColor(this)">颜色同步</button>
+                                <button onclick="applySubToSize(this)">尺码同步</button>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            `;
+            
+            row.innerHTML = rowHtml;
+            tbody.appendChild(row);
+            updateAsinCount();
+        }
+        
+        // 打开文件选择器
+        function openFilePicker(element) {
+            const fileInput = element.querySelector('.file-input');
+            if (!fileInput) {
+                const newFileInput = document.createElement('input');
+                newFileInput.type = 'file';
+                newFileInput.className = 'file-input';
+                newFileInput.accept = 'image/*';
+                newFileInput.onchange = function(event) {
+                    handleImageUpload(event, this);
+                };
+                element.appendChild(newFileInput);
+                newFileInput.click();
+            } else {
+                fileInput.click();
+            }
+        }
+        
+        // 处理图片上传
+        function handleImageUpload(event, fileInput) {
+            saveState();
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imageInput = fileInput.closest('.image-input');
+                    const img = imageInput.querySelector('img');
+                    
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 清除所有图片（单行）
+        function clearAllImages(button) {
+            saveState();
+            const row = button.closest('tr');
+            const imageCells = row.querySelectorAll('.image-input');
+            imageCells.forEach(cell => {
+                const img = cell.querySelector('img');
+                img.src = '';
+                img.style.display = 'none';
+            });
+        }
+        
+        // 清除所有图片（全局）
+        function clearAllImagesGlobal() {
+            saveState();
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                const imageCells = row.querySelectorAll('.image-input');
+                imageCells.forEach(cell => {
+                    const img = cell.querySelector('img');
+                    img.src = '';
+                    img.style.display = 'none';
+                });
+            });
+        }
+        
+        // 清除指定列
+        function clearColumn(columnType) {
+            saveState();
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                const input = row.querySelector(`.${columnType}-input`);
+                if (input) {
+                    input.value = '';
+                }
+            });
+        }
+        
+        // 获取行数据
+        function getRowData(row) {
+            const asin = row.querySelector('.asin-input').value;
+            const color = row.querySelector('.color-input').value;
+            const size = row.querySelector('.size-input').value;
+            
+            const images = [];
+            const imageCells = row.querySelectorAll('.image-input');
+            imageCells.forEach(cell => {
+                const img = cell.querySelector('img');
+                if (img.src && img.style.display !== 'none') {
+                    images.push(img.src);
+                } else {
+                    images.push(null);
+                }
+            });
+            
+            return { asin, color, size, images };
+        }
+        
+        // 设置行数据（只设置图片，不设置ASIN、颜色、尺码）
+        function setRowImagesOnly(row, images) {
+            const imageCells = row.querySelectorAll('.image-input');
+            imageCells.forEach((cell, index) => {
+                if (images[index]) {
+                    const img = cell.querySelector('img');
+                    img.src = images[index];
+                    img.style.display = 'block';
+                } else {
+                    // 如果没有图片数据，清除当前图片
+                    const img = cell.querySelector('img');
+                    img.src = '';
+                    img.style.display = 'none';
+                }
+            });
+        }
+        
+        // 全部图片应用到所有变种
+        function applyAllToAll(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    setRowImagesOnly(row, [...sourceData.images]);
+                }
+            });
+        }
+        
+        // 全部图片应用到颜色相同的变种
+        function applyAllToColor(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            const sourceColor = sourceData.color;
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    const rowData = getRowData(row);
+                    if (rowData.color === sourceColor) {
+                        setRowImagesOnly(row, [...sourceData.images]);
+                    }
+                }
+            });
+        }
+        
+        // 全部图片应用到尺码相同的变种
+        function applyAllToSize(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            const sourceSize = sourceData.size;
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    const rowData = getRowData(row);
+                    if (rowData.size === sourceSize) {
+                        setRowImagesOnly(row, [...sourceData.images]);
+                    }
+                }
+            });
+        }
+        
+        // 附图应用到所有变种
+        function applySubToAll(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            
+            // 只获取附图（索引1-8）
+            const subImages = sourceData.images.slice(1);
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    const rowData = getRowData(row);
+                    // 保持主图不变，只替换附图
+                    const newImages = [...rowData.images];
+                    for (let i = 1; i < 9; i++) {
+                        newImages[i] = subImages[i-1];
+                    }
+                    setRowImagesOnly(row, newImages);
+                }
+            });
+        }
+        
+        // 附图应用到颜色相同的变种
+        function applySubToColor(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            const sourceColor = sourceData.color;
+            
+            // 只获取附图（索引1-8）
+            const subImages = sourceData.images.slice(1);
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    const rowData = getRowData(row);
+                    if (rowData.color === sourceColor) {
+                        // 保持主图不变，只替换附图
+                        const newImages = [...rowData.images];
+                        for (let i = 1; i < 9; i++) {
+                            newImages[i] = subImages[i-1];
+                        }
+                        setRowImagesOnly(row, newImages);
+                    }
+                }
+            });
+        }
+        
+        // 附图应用到尺码相同的变种
+        function applySubToSize(button) {
+            saveState();
+            const sourceRow = button.closest('tr');
+            const sourceData = getRowData(sourceRow);
+            const sourceSize = sourceData.size;
+            
+            // 只获取附图（索引1-8）
+            const subImages = sourceData.images.slice(1);
+            
+            const allRows = document.querySelectorAll('#tableBody tr');
+            allRows.forEach(row => {
+                if (row !== sourceRow) {
+                    const rowData = getRowData(row);
+                    if (rowData.size === sourceSize) {
+                        // 保持主图不变，只替换附图
+                        const newImages = [...rowData.images];
+                        for (let i = 1; i < 9; i++) {
+                            newImages[i] = subImages[i-1];
+                        }
+                        setRowImagesOnly(row, newImages);
+                    }
+                }
+            });
+        }
+        
+        // 打开批量导入模态框
+        function openBatchImport(type) {
+            currentImportType = type;
+            const modal = document.getElementById('batchImportModal');
+            const title = document.getElementById('importTypeTitle');
+            
+            switch(type) {
+                case 'asin':
+                    title.textContent = 'ASIN';
+                    break;
+                case 'color':
+                    title.textContent = '颜色';
+                    break;
+                case 'size':
+                    title.textContent = '尺码';
+                    break;
+            }
+            
+            document.getElementById('batchImportData').value = '';
+            modal.style.display = 'block';
+        }
+        
+        // 关闭批量导入模态框
+        function closeBatchImport() {
+            document.getElementById('batchImportModal').style.display = 'none';
+        }
+        
+        // 处理批量导入
+        function processBatchImport() {
+            saveState();
+            const data = document.getElementById('batchImportData').value;
+            const values = data.split('\n').filter(line => line.trim() !== '');
+            
+            if (values.length === 0) {
+                alert('请输入有效的数据！');
+                return;
+            }
+            
+            // 获取现有行数
+            const existingRows = document.querySelectorAll('#tableBody tr');
+            const existingRowCount = existingRows.length;
+            
+            // 如果现有行数少于需要的行数，添加新行
+            if (existingRowCount < values.length) {
+                for (let i = existingRowCount; i < values.length; i++) {
+                    addRowWithData('', '', '');
+                }
+            }
+            
+            // 更新行数据
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach((row, index) => {
+                if (index < values.length) {
+                    const input = row.querySelector(`.${currentImportType}-input`);
+                    if (input) {
+                        input.value = values[index].trim();
+                    }
+                }
+            });
+            
+            updateAsinCount();
+            closeBatchImport();
+        }
+        
+        // 打开批量图片导入
+        function openBatchImageImport(button) {
+            currentBatchImageRow = button.closest('tr');
+            const fileInput = document.getElementById('hiddenFileInput');
+            
+            // 清除之前选择的文件
+            fileInput.value = '';
+            
+            // 监听文件选择事件
+            fileInput.onchange = function(event) {
+                processBatchImageImport(event);
+            };
+            
+            // 触发文件选择
+            fileInput.click();
+        }
+        
+        // 处理批量图片导入
+        function processBatchImageImport(event) {
+            saveState();
+            const files = event.target.files;
+            
+            if (!currentBatchImageRow) {
+                alert('未选择行！');
+                return;
+            }
+            
+            if (files.length === 0) {
+                alert('请选择图片文件！');
+                return;
+            }
+            
+            // 为当前行处理图片
+            const imageCells = currentBatchImageRow.querySelectorAll('.image-input');
+            
+            // 获取当前行的图片数据，保留主图
+            const currentRowData = getRowData(currentBatchImageRow);
+            const hasMainImage = currentRowData.images[0] !== null;
+            
+            for (let i = 0; i < Math.min(files.length, 9); i++) {
+                // 如果有主图且当前是主图位置，则跳过
+                if (hasMainImage && i === 0) {
+                    continue;
+                }
+                
+                const file = files[i - (hasMainImage && i >= 0 ? 1 : 0)];
+                if (!file) continue;
+                
+                const reader = new FileReader();
+                
+                reader.onload = (function(imgIndex) {
+                    return function(e) {
+                        if (imgIndex < imageCells.length) {
+                            const cell = imageCells[imgIndex];
+                            const img = cell.querySelector('img');
+                            
+                            img.src = e.target.result;
+                            img.style.display = 'block';
+                        }
+                    };
+                })(i);
+                
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 导出所有图片为ZIP
+        function exportImages() {
+            const zip = new JSZip();
+            const allRows = document.querySelectorAll('#tableBody tr');
+            let imageCount = 0;
+            
+            allRows.forEach(row => {
+                const data = getRowData(row);
+                if (!data.asin) return;
+                
+                // 处理主图
+                if (data.images[0]) {
+                    const filename = `${data.asin}.MAIN.jpg`;
+                    // 将base64转换为blob
+                    const base64Data = data.images[0].replace(/^image\/(png|jpg|jpeg);base64,/, '');
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], {type: 'image/jpeg'});
+                    zip.file(filename, blob);
+                    imageCount++;
+                }
+                
+                // 处理附图
+                for (let i = 1; i < data.images.length; i++) {
+                    if (data.images[i]) {
+                        const ptNumber = i.toString().padStart(2, '0');
+                        const filename = `${data.asin}.PT${ptNumber}.jpg`;
+                        // 将base64转换为blob
+                        const base64Data = data.images[i].replace(/^data:image\/(png|jpg|jpeg);base64,/, '');
+                        const byteCharacters = atob(base64Data);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let j = 0; j < byteCharacters.length; j++) {
+                            byteNumbers[j] = byteCharacters.charCodeAt(j);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], {type: 'image/jpeg'});
+                        zip.file(filename, blob);
+                        imageCount++;
+                    }
+                }
+            });
+            
+            if (imageCount === 0) {
+                alert('没有图片可以导出！');
+                return;
+            }
+            
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "amazon_variant_images.zip");
+            });
+        }
+        
+        // 全部清除
+        function clearAll() {
+            if (confirm('确定要清除所有数据吗？')) {
+                saveState();
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+                updateAsinCount();
+            }
+        }
+        
+        // 返回上一步
+        function undoLastAction() {
+            if (operationHistory.length > 0) {
+                // 保存当前状态到重做历史
+                const rows = document.querySelectorAll('#tableBody tr');
+                const currentTableState = [];
+                rows.forEach(row => {
+                    const rowData = getRowData(row);
+                    currentTableState.push({
+                        asin: rowData.asin,
+                        color: rowData.color,
+                        size: rowData.size,
+                        images: [...rowData.images]
+                    });
+                });
+                const currentAsinCount = document.getElementById('asinCount').textContent;
+                redoHistory.push({
+                    tableState: currentTableState,
+                    asinCount: currentAsinCount
+                });
+                
+                // 恢复上一个状态的图片
+                const lastState = operationHistory.pop();
+                const rowsToRestore = document.querySelectorAll('#tableBody tr');
+                lastState.tableState.forEach((rowData, index) => {
+                    if (index < rowsToRestore.length) {
+                        setRowImagesOnly(rowsToRestore[index], rowData.images);
+                    }
+                });
+                document.getElementById('asinCount').textContent = lastState.asinCount;
+            } else {
+                alert('没有可撤销的操作');
+            }
+        }
+        
+        // 下一步（重做）
+        function redoLastAction() {
+            if (redoHistory.length > 0) {
+                // 保存当前状态到操作历史
+                const rows = document.querySelectorAll('#tableBody tr');
+                const currentTableState = [];
+                rows.forEach(row => {
+                    const rowData = getRowData(row);
+                    currentTableState.push({
+                        asin: rowData.asin,
+                        color: rowData.color,
+                        size: rowData.size,
+                        images: [...rowData.images]
+                    });
+                });
+                const currentAsinCount = document.getElementById('asinCount').textContent;
+                operationHistory.push({
+                    tableState: currentTableState,
+                    asinCount: currentAsinCount
+                });
+                
+                // 恢复下一个状态的图片
+                const nextState = redoHistory.pop();
+                const rowsToRestore = document.querySelectorAll('#tableBody tr');
+                nextState.tableState.forEach((rowData, index) => {
+                    if (index < rowsToRestore.length) {
+                        setRowImagesOnly(rowsToRestore[index], rowData.images);
+                    }
+                });
+                document.getElementById('asinCount').textContent = nextState.asinCount;
+            } else {
+                alert('没有可重做的操作');
+            }
+        }
+        
+        // 排序表格
+        function sortTable(column, order) {
+            saveState();
+            const tbody = document.getElementById('tableBody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                let aValue, bValue;
+                
+                if (column === 'color') {
+                    aValue = a.querySelector('.color-input').value.toLowerCase();
+                    bValue = b.querySelector('.color-input').value.toLowerCase();
+                } else if (column === 'size') {
+                    aValue = a.querySelector('.size-input').value.toLowerCase();
+                    bValue = b.querySelector('.size-input').value.toLowerCase();
+                }
+                
+                if (order === 'asc') {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+            
+            // 重新添加行并更新序号
+            tbody.innerHTML = '';
+            rows.forEach((row, index) => {
+                row.querySelector('td').textContent = index + 1;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // 初始化表格
+        window.onload = function() {
+            initTable();
+        };
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const importModal = document.getElementById('batchImportModal');
+            
+            if (event.target === importModal) {
+                closeBatchImport();
+            }
+        };
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', function(event) {
+            // Ctrl+Z 撤销
+            if (event.ctrlKey && event.key === 'z') {
+                event.preventDefault();
+                undoLastAction();
+            }
+            // Ctrl+Y 重做
+            if (event.ctrlKey && event.key === 'y') {
+                event.preventDefault();
+                redoLastAction();
+            }
+        });
+    </script>
+</body>
+</html>
+```
