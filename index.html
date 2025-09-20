@@ -21,7 +21,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             margin: 0 auto;
-            max-width: 1660px
+            max-width: 1660px;
         }
         .header {
             display: flex;
@@ -517,7 +517,6 @@
         </table>
     </div>
 
-    <!-- 批量导入模态框 -->
     <div id="batchImportModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeBatchImport()">&times;</span>
@@ -531,7 +530,6 @@ B08N5WRX57"></textarea>
         </div>
     </div>
 
-    <!-- 隐藏的文件输入框 -->
     <input type="file" id="hiddenFileInput" multiple accept="image/*" style="display: none;">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -552,9 +550,8 @@ B08N5WRX57"></textarea>
             updateAsinCount();
         }
         
-        // 保存当前状态到历史记录（只保存图片状态）
+        // 保存当前状态到历史记录
         function saveState() {
-            // 保存每行的图片数据
             const rows = document.querySelectorAll('#tableBody tr');
             const tableState = [];
             
@@ -979,42 +976,48 @@ B08N5WRX57"></textarea>
             }
             
             if (files.length === 0) {
-                alert('请选择图片文件！');
-                return;
+                return; // 用户取消选择
             }
             
-            // 为当前行处理图片
             const imageCells = currentBatchImageRow.querySelectorAll('.image-input');
             
-            // 获取当前行的图片数据，保留主图
-            const currentRowData = getRowData(currentBatchImageRow);
-            const hasMainImage = currentRowData.images[0] !== null;
+            // 将 FileList 转换为数组，并过滤掉非图片文件
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
             
-            for (let i = 0; i < Math.min(files.length, 9); i++) {
-                // 如果有主图且当前是主图位置，则跳过
-                if (hasMainImage && i === 0) {
-                    continue;
+            // 异步处理所有文件
+            Promise.all(imageFiles.map(file => {
+                return new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            })).then(dataUrls => {
+                // 获取当前行的图片数据，保留主图
+                const currentRowData = getRowData(currentBatchImageRow);
+                const hasMainImage = currentRowData.images[0];
+                
+                let fileIndex = 0;
+                for (let i = 0; i < imageCells.length; i++) {
+                    // 如果有主图且当前是主图位置，则跳过
+                    if (hasMainImage && i === 0) {
+                        continue;
+                    }
+                    
+                    if (fileIndex < dataUrls.length) {
+                        const cell = imageCells[i];
+                        const img = cell.querySelector('img');
+                        img.src = dataUrls[fileIndex];
+                        img.style.display = 'block';
+                        fileIndex++;
+                    } else {
+                        // 如果文件用完了，清空剩下的图片位置
+                        const cell = imageCells[i];
+                        const img = cell.querySelector('img');
+                        img.src = '';
+                        img.style.display = 'none';
+                    }
                 }
-                
-                const file = files[i - (hasMainImage && i >= 0 ? 1 : 0)];
-                if (!file) continue;
-                
-                const reader = new FileReader();
-                
-                reader.onload = (function(imgIndex) {
-                    return function(e) {
-                        if (imgIndex < imageCells.length) {
-                            const cell = imageCells[imgIndex];
-                            const img = cell.querySelector('img');
-                            
-                            img.src = e.target.result;
-                            img.style.display = 'block';
-                        }
-                    };
-                })(i);
-                
-                reader.readAsDataURL(file);
-            }
+            });
         }
         
         // 导出所有图片为ZIP
@@ -1030,8 +1033,8 @@ B08N5WRX57"></textarea>
                 // 处理主图
                 if (data.images[0]) {
                     const filename = `${data.asin}.MAIN.jpg`;
-                    // 将base64转换为blob
-                    const base64Data = data.images[0].replace(/^image\/(png|jpg|jpeg);base64,/, '');
+                    // **优化点:** 正确移除 `data:` 前缀
+                    const base64Data = data.images[0].replace(/^data:image\/(png|jpg|jpeg);base64,/, '');
                     const byteCharacters = atob(base64Data);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) {
@@ -1106,13 +1109,24 @@ B08N5WRX57"></textarea>
                 
                 // 恢复上一个状态的图片
                 const lastState = operationHistory.pop();
+                
+                // 首先清空表格
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+                
+                // 重新构建表格内容
+                lastState.tableState.forEach(rowData => {
+                    addRowWithData(rowData.asin, rowData.color, rowData.size);
+                });
+                
                 const rowsToRestore = document.querySelectorAll('#tableBody tr');
                 lastState.tableState.forEach((rowData, index) => {
                     if (index < rowsToRestore.length) {
                         setRowImagesOnly(rowsToRestore[index], rowData.images);
                     }
                 });
-                document.getElementById('asinCount').textContent = lastState.asinCount;
+                
+                updateAsinCount();
             } else {
                 alert('没有可撤销的操作');
             }
@@ -1141,13 +1155,24 @@ B08N5WRX57"></textarea>
                 
                 // 恢复下一个状态的图片
                 const nextState = redoHistory.pop();
+                
+                // 首先清空表格
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+                
+                // 重新构建表格内容
+                nextState.tableState.forEach(rowData => {
+                    addRowWithData(rowData.asin, rowData.color, rowData.size);
+                });
+                
                 const rowsToRestore = document.querySelectorAll('#tableBody tr');
                 nextState.tableState.forEach((rowData, index) => {
                     if (index < rowsToRestore.length) {
                         setRowImagesOnly(rowsToRestore[index], rowData.images);
                     }
                 });
-                document.getElementById('asinCount').textContent = nextState.asinCount;
+                
+                updateAsinCount();
             } else {
                 alert('没有可重做的操作');
             }
