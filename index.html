@@ -429,7 +429,8 @@
             .col-image { width: 65px; }
             .col-action { width: 100px; }
         }
-        .preview-btn { position:absolute; top:2px; right:2px; width:21px; height:21px; padding:3px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(255,255,255,.94); color:#34495e; box-shadow:0 1px 4px #0003; z-index:2; }
+        .preview-btn { position:absolute; top:2px; right:2px; width:21px; height:21px; padding:3px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(255,255,255,.94); color:#34495e; box-shadow:0 1px 4px #0003; z-index:2; opacity:0; pointer-events:none; }
+        .image-input:hover .preview-btn { opacity:1; pointer-events:auto; }
         .preview-btn[hidden] { display:none; }
         .preview-btn:hover { transform:none; background:white; }
         .image-input img { object-fit:contain; }
@@ -989,15 +990,14 @@ B08N5WRX57"></textarea>
         function syncImages(button, mode, includeMain) {
             if (busy) return;
             const sourceRow = button.closest('tr'); const source = getRowData(sourceRow);
-            if (includeMain && !source.color.trim()) { alert('同步全图前请填写源行颜色，避免跨颜色覆盖主图。'); return; }
+            if (mode === 'color' && !source.color.trim()) { alert('颜色同步前请填写源行颜色。'); return; }
+            if (mode === 'size' && !source.size.trim()) { alert('尺码同步前请填写源行尺码。'); return; }
             const targets = Array.from(document.querySelectorAll('#tableBody tr')).filter(row => {
                 if (row === sourceRow) return false;
                 const data = getRowData(row);
-                if (includeMain && data.color.trim().toLowerCase() !== source.color.trim().toLowerCase()) return false;
                 return mode === 'all' || (mode === 'color' ? data.color.trim().toLowerCase() === source.color.trim().toLowerCase() : data.size.trim().toLowerCase() === source.size.trim().toLowerCase());
             });
-            if (!targets.length) { alert('没有可同步的目标行。全图只同步到同颜色变体。'); return; }
-            if (!confirm(`将同步${includeMain ? '主图和附图（仅同颜色）' : '附图（保留主图）'}到 ${targets.length} 行，源行空位也会清除对应图片：\n${targets.map(r => getRowData(r).asin || '未填 ASIN').join('\n')}`)) return;
+            if (!targets.length) { alert(`没有可同步的目标行。请检查是否有相同${mode === 'size' ? '尺码' : '颜色'}的其他变体。`); return; }
             saveState();
             targets.forEach(row => { const images = getRowData(row).images; for (let i = includeMain ? 0 : 1; i < 9; i++) images[i] = source.images[i]; setRowImagesOnly(row, images); });
             refreshMetadata();
