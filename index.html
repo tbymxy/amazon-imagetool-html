@@ -443,7 +443,6 @@
         #imagePreview::backdrop { background:rgba(0,0,0,.82); }
         .preview-frame { position:relative; max-width:100%; line-height:0; }
         #largePreview { display:block; max-width:calc(100vw - 40px); max-height:calc(100vh - 40px); width:auto; height:auto; object-fit:contain; }
-        #previewInfo { position:absolute; bottom:10px; right:10px; max-width:calc(100% - 20px); padding:7px 10px; border-radius:5px; background:rgba(0,0,0,.7); color:white; font-size:12px; line-height:1.5; overflow-wrap:anywhere; text-align:right; }
     </style>
 </head>
 <body>
@@ -551,7 +550,6 @@ B08N5WRX57"></textarea>
     <dialog id="imagePreview" aria-label="图片放大预览" onclick="this.close()">
         <div class="preview-frame">
             <img id="largePreview" alt="图片放大预览">
-            <div id="previewInfo"></div>
         </div>
     </dialog>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -952,7 +950,6 @@ B08N5WRX57"></textarea>
         function previewImage(cell) {
             if (busy) return;
             const asset = assets.get(cell.querySelector('img').src); if (!asset) return;
-            document.getElementById('previewInfo').textContent = describeAsset(asset);
             const image = document.getElementById('largePreview'); image.src = asset.url;
             image.alt = asset.file.name;
             document.getElementById('imagePreview').showModal();
@@ -1029,7 +1026,6 @@ B08N5WRX57"></textarea>
             const result = preflight(Array.from(document.querySelectorAll('#tableBody tr'),getRowData));
             if (result.errors.length) { alert(`请先修复以下问题：\n\n${result.errors.join('\n')}`); return; }
             if (!result.entries.length) { alert('没有图片可以导出！'); return; }
-            if (!confirm(`即将导出 ${result.entries.length} 张原图，保留真实格式、尺寸与文件字节。\n\n${result.warnings.join('\n') || '文件基础检查通过。'}\n\n请人工确认：主图颜色/款式与 ASIN 一致、画面清晰、主体足够大、白底及内容符合目标站点和类目要求。基础检查不代表亚马逊审核通过。继续导出？`)) return;
             setBusy(true, '正在生成 ZIP…');
             try {
                 const zip = new JSZip();
