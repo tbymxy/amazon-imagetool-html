@@ -429,25 +429,27 @@
             .col-image { width: 65px; }
             .col-action { width: 100px; }
         }
-        .preview-btn { position:absolute; bottom:-10px; right:-4px; padding:2px 5px; font-size:10px; z-index:2; }
+        .preview-btn { position:absolute; top:2px; right:2px; width:21px; height:21px; padding:3px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(255,255,255,.94); color:#34495e; box-shadow:0 1px 4px #0003; z-index:2; }
         .preview-btn[hidden] { display:none; }
+        .preview-btn:hover { transform:none; background:white; }
         .image-input img { object-fit:contain; }
+        .image-stats { margin-left:20px; display:inline-block; }
+        .stats { white-space:nowrap; }
         button:disabled { opacity:.5; cursor:wait; }
-        #status { min-height:24px; color:#234; margin:10px 0; }
-        .export-note { color:#455; font-size:13px; line-height:1.7; }
-        dialog { max-width:95vw; max-height:94vh; border:0; border-radius:10px; }
-        dialog::backdrop { background:#0009; }
-        .preview-scroll { overflow:auto; max-height:60vh; background:#eee; }
-        #largePreview { display:block; max-width:100%; height:auto; background:white; }
-        #largePreview.actual { max-width:none; }
-        #thumbnailPreview { width:160px; height:160px; object-fit:contain; background:white; border:1px solid #aaa; }
+        #status[hidden] { display:none; }
+        #imagePreview { position:fixed; inset:0; width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:20px; border:0; background:transparent; color:white; cursor:zoom-out; overflow:auto; }
+        #imagePreview[open] { display:flex; align-items:center; justify-content:center; }
+        #imagePreview::backdrop { background:rgba(0,0,0,.82); }
+        .preview-frame { position:relative; max-width:100%; line-height:0; }
+        #largePreview { display:block; max-width:calc(100vw - 40px); max-height:calc(100vh - 40px); width:auto; height:auto; object-fit:contain; }
+        #previewInfo { position:absolute; bottom:10px; right:10px; max-width:calc(100% - 20px); padding:7px 10px; border-radius:5px; background:rgba(0,0,0,.7); color:white; font-size:12px; line-height:1.5; overflow-wrap:anywhere; text-align:right; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="left-controls">
-                <div class="stats">ASIN总数: <span id="asinCount">0</span></div>
+                <div class="stats">ASIN总数: <span id="asinCount">0</span><span class="image-stats">图片总数: <span id="imageCount">0</span></span></div>
             </div>
             <div class="center-controls">
                 <h1>Amazon 变体图片生成工具</h1>
@@ -461,8 +463,7 @@
             </div>
         </div>
         
-        <p class="export-note">v2.0 · 原图保真导出：仅 JPEG/PNG，保留真实格式、原始尺寸和文件字节，不缩放、不重编码。点击图片角落“检查”查看原图。全图同步仅限同颜色；批量添加识别 MAIN/PT01–PT08，未指定位置按选择顺序分配，提交前可核对。刷新页面会丢失未导出数据。</p>
-        <div id="status" role="status" aria-live="polite"></div>
+        <div id="status" hidden></div>
         <table id="variantTable">
             <thead>
                 <tr>
@@ -546,15 +547,11 @@ B08N5WRX57"></textarea>
 
     <input type="file" id="hiddenFileInput" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png" style="display: none;">
 
-    <dialog id="imagePreview">
-        <button onclick="document.getElementById('imagePreview').close()">关闭</button>
-        <button onclick="document.getElementById('largePreview').classList.toggle('actual')">切换适应窗口 / 100% 像素</button>
-        <p id="previewInfo"></p>
-        <p><label>移动到 <select id="previewSlot"><option value="0">MAIN 主图</option><option value="1">PT01</option><option value="2">PT02</option><option value="3">PT03</option><option value="4">PT04</option><option value="5">PT05</option><option value="6">PT06</option><option value="7">PT07</option><option value="8">PT08</option></select></label> <button onclick="movePreviewImage()">移动 / 与目标交换</button> 目标已有图片时互换位置。</p>
-        <div class="preview-scroll"><img id="largePreview" alt="原图检查"></div>
-        <p>160×160 缩略预览：检查商品是否清楚易辨认。白底预览不能证明源文件背景为纯白。</p>
-        <img id="thumbnailPreview" alt="搜索缩略尺寸模拟预览">
-        <p>请人工检查真实清晰度、主体占比、纯白背景及颜色款式；本工具不会自动修复模糊或保证审核通过。</p>
+    <dialog id="imagePreview" aria-label="图片放大预览" onclick="this.close()">
+        <div class="preview-frame">
+            <img id="largePreview" alt="图片放大预览">
+            <div id="previewInfo"></div>
+        </div>
     </dialog>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -651,9 +648,8 @@ B08N5WRX57"></textarea>
                         <div class="sync-dropdown">
                             <button class="sync-btn">全图</button>
                             <div class="sync-dropdown-content">
-                                <button onclick="applyAllToAll(this)">同色全同步</button>
                                 <button onclick="applyAllToColor(this)">颜色同步</button>
-                                <button onclick="applyAllToSize(this)">同色同尺码</button>
+                                <button onclick="applyAllToSize(this)">尺码同步</button>
                             </div>
                         </div>
                         <div class="sync-dropdown">
@@ -781,9 +777,6 @@ B08N5WRX57"></textarea>
         }
         
         // 全部图片应用到所有变种
-        function applyAllToAll(button) {
-            syncImages(button, 'all', true);
-        }
         
         // 全部图片应用到颜色相同的变种
         function applyAllToColor(button) {
@@ -906,7 +899,6 @@ B08N5WRX57"></textarea>
         // Object URLs remain alive while referenced by the table or history.
         const assets = new Map();
         let busy = false;
-        let previewCell = null;
         function setBusy(value, message = '') {
             busy = value;
             document.querySelectorAll('button, input, textarea').forEach(el => el.disabled = value);
@@ -945,37 +937,24 @@ B08N5WRX57"></textarea>
                 img.alt = asset ? asset.file.name : '';
                 let button = cell.querySelector('.preview-btn');
                 if (!button) {
-                    button = document.createElement('button'); button.className = 'preview-btn'; button.textContent = '检查';
+                    button = document.createElement('button'); button.className = 'preview-btn';
+                    button.type = 'button'; button.title = '放大查看'; button.setAttribute('aria-label', '放大查看图片');
+                    button.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 15 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
                     button.onclick = event => { event.stopPropagation(); previewImage(cell); }; cell.appendChild(button);
                 }
                 button.hidden = !asset;
                 button.disabled = busy;
             });
+            document.getElementById('imageCount').textContent = Array.from(document.querySelectorAll('#tableBody .image-input img')).filter(img => assets.has(img.src) && img.style.display !== 'none').length;
             collectAssets();
         }
         function previewImage(cell) {
             if (busy) return;
             const asset = assets.get(cell.querySelector('img').src); if (!asset) return;
-            const dialog = document.getElementById('imagePreview');
-            previewCell = cell;
-            document.getElementById('previewSlot').value = String(Array.from(cell.closest('tr').querySelectorAll('.image-input')).indexOf(cell));
             document.getElementById('previewInfo').textContent = describeAsset(asset);
-            const image = document.getElementById('largePreview'); image.src = asset.url; image.className = '';
-            document.getElementById('thumbnailPreview').src = asset.url;
-            dialog.showModal();
-        }
-        function movePreviewImage() {
-            if (busy || !previewCell || !previewCell.isConnected) { document.getElementById('imagePreview').close(); return; }
-            const row = previewCell.closest('tr');
-            const from = Array.from(row.querySelectorAll('.image-input')).indexOf(previewCell);
-            const to = Number(document.getElementById('previewSlot').value);
-            if (!Number.isInteger(to) || to < 0 || to > 8 || to === from) return;
-            saveState();
-            const images = getRowData(row).images;
-            [images[from], images[to]] = [images[to], images[from]];
-            setRowImagesOnly(row, images);
-            document.getElementById('imagePreview').close();
-            refreshMetadata();
+            const image = document.getElementById('largePreview'); image.src = asset.url;
+            image.alt = asset.file.name;
+            document.getElementById('imagePreview').showModal();
         }
         function planBatch(files, existing) {
             const plan = []; const used = new Set(); const unnamed = [];
@@ -1000,13 +979,10 @@ B08N5WRX57"></textarea>
                 for (let i = 0; i < files.length; i++) { loaded.push(await readAsset(files[i])); document.getElementById('status').textContent = `检查图片 ${i+1}/${files.length}`; }
                 const data = getRowData(row);
                 const plan = singleIndex === null ? planBatch(loaded, data.images) : [{index: singleIndex, asset: loaded[0]}];
-                const slots = ['MAIN','PT01','PT02','PT03','PT04','PT05','PT06','PT07','PT08'];
-                const summary = plan.map(p => `${slots[p.index]} ← ${p.asset.file.name}${data.images[p.index] ? '（替换）' : ''}`).join('\n');
-                if (singleIndex === null && !confirm(`请核对图片位置；未列出的位置保留原图：\n\n${summary}`)) { document.getElementById('status').textContent = '已取消导入，原有图片保持不变。'; return; }
                 saveState();
                 plan.forEach(p => data.images[p.index] = p.asset.url);
                 setRowImagesOnly(row, data.images);
-                document.getElementById('status').textContent = `已导入 ${plan.length} 张原图，未缩放、未重编码。`;
+                document.getElementById('status').textContent = '';
             } catch (error) { alert(error.message); document.getElementById('status').textContent = '导入未完成，原有图片保持不变。'; }
             finally { const message = document.getElementById('status').textContent; setBusy(false, message); refreshMetadata(); }
         }
